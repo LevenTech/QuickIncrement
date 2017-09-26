@@ -6,9 +6,9 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ;-----------------------------------|
 ;                                   |
-; QuickIncrement by LevenTech        |
+; QuickIncrement by LevenTech       |
 ;                                   |
-; Version 1.0 (9-23-17)             |
+; Version 1.1 (9-26-17)             |
 ;                                   |
 ;-----------------------------------|
 
@@ -29,6 +29,9 @@ MyHelp:
 +^/::
 !^/::
 	message = 
+	message = %message%`n NOTE: `tOnly 1-digit and 2-digit numbers are supported
+	message = %message%`n `t(numbers with 3+ digits will not change)
+	message = %message%`n
 	message = %message%`n
 	message = %message%`n Ctrl + Shift + (1-9):`t Increases numbers in selected text by (1-9)
 	message = %message%`n
@@ -36,125 +39,94 @@ MyHelp:
 	message = %message%`n
 	MsgBox, , QuickIncrement by LevenTech, %message%
 Return
-	
+
+HideTrayTip() {
+    TrayTip  ; Attempt to hide it the normal way.
+    if SubStr(A_OSVersion,1,3) = "10." {
+        Menu Tray, NoIcon
+        Sleep 200  ; It may be necessary to adjust this sleep.
+        Menu Tray, Icon
+    }
+}
+
 	
 ^+1::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(1)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-
+	IncVal := 1
+	Goto, DoIt
 ^+2::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(2)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-
+	IncVal := 2
+	Goto, DoIt
 ^+3::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(3)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-
+	IncVal := 3
+	Goto, DoIt
 ^+4::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(4)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-	
+	IncVal := 4
+	Goto, DoIt
 ^+5::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(5)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-
+	IncVal := 5
+	Goto, DoIt
 ^+6::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(6)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-
+	IncVal := 6
+	Goto, DoIt
 ^+7::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(7)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
-
+	IncVal := 7
+	Goto, DoIt
 ^+8::
+	IncVal := 8
+	Goto, DoIt
+^+9::
+	IncVal := 9
+	Goto, DoIt
+
+MarkupNumbers(str)
+{
+	Loop, 10 {
+		ThisNumber :=  A_Index-1
+		StringReplace, str, str, %ThisNumber%, &&%ThisNumber%$$, All
+	}
+	StringReplace, str, str, $$&&, , All
+	return str
+}
+	
+DoIt:
 	Send ^c
 	OldVal = %clipboard%
-	ReplacedStr := DoIt(8)
-	If (OldVal != ReplacedStr)
+	NewVal := MarkupNumbers(OldVal)
+	RegexReplace(NewVal,"&&","&&",NumCount)
+	NextIncVal := IncVal
+	Loop, 100 {
+		ThisNumber :=  A_Index-1
+		StringReplace, NewVal, NewVal, &&%ThisNumber%$$, %NextIncVal%, All
+		NextIncVal+=1
+	}
+	StringReplace, NewVal, NewVal, &&, , All
+	StringReplace, NewVal, NewVal, $$, , All
+	If (OldVal != NewVal)
 	{
-		Send, %ReplacedStr%
+		clipboard = %NewVal%
+		Send ^v
+		TrayTip Increment: +%IncVal%,Updated %NumCount% numbers, , 17
 	}
 Return
 
-^+9::
-	Send ^c
-	OldVal = %clipboard%
-	ReplacedStr := DoIt(9)
-	If (OldVal != ReplacedStr)
-	{
-		Send, %ReplacedStr%
-	}
-Return
 
 ^+0::
 	Send ^c
 	OldVal = %clipboard%
-	ReplacedStr := DoIt(0,1)
-	If (OldVal != ReplacedStr)
+	NewVal := MarkupNumbers(OldVal)
+	RegexReplace(NewVal,"&&","&&",NumCount)
+	Loop, 100 {
+		ThisChar :=  A_Index-1
+		StringReplace, NewVal, NewVal, &&%ThisChar%$$, , All
+	}
+	StringReplace, NewVal, NewVal, &&, , All
+	StringReplace, NewVal, NewVal, $$, , All
+	If (OldVal != NewVal)
 	{
-		Send, %ReplacedStr%
+		clipboard = %NewVal%
+		Send ^v
+		TrayTip Numbers Cleared, Cleared %NumCount% numbers, , 17
 	}
 Return
 
 
-DoIt(IncVal,Clear:=0)
-{
-	CurrentVal = %clipboard%
-	Loop, 10 {
-		ThisChar :=  A_Index-1
-		If (InStr(CurrentVal,ThisChar)>0) {
-			If (Clear = 1)
-			{
-				StringReplace, CurrentVal, CurrentVal, %ThisChar%, , All
-				Return CurrentVal
-			} else 
-			{
-				StringReplace, CurrentVal, CurrentVal, %ThisChar%, %IncVal%, All
-				Return CurrentVal
-			}
-		}
-		IncVal+=1
-	}
-}
